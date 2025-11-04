@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Solar System — 태양 중심 시작</title>
+  <style>
+    html,body{height:100%;margin:0;background:#000;color:#fff;font-family:system-ui, -apple-system, 'Segoe UI', Roboto}
+    #canvas-container{width:100%;height:100%}
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.155.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.155.0/examples/jsm/controls/OrbitControls.js';
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1e8);
+    camera.position.set(0, 200, 600);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0,0,0);
+
+    const ambient = new THREE.AmbientLight(0x333333);
+    scene.add(ambient);
+    const light = new THREE.PointLight(0xffffff, 2.0);
+    scene.add(light);
+
+    const DIST_SCALE = 0.000002;
+    const SIZE_SCALE = 0.03;
+
+    const planetData = [
+      { name:'Sun', a:0, period:0, radius:696340, color:0xffdd66 },
+      { name:'Mercury', a:57.9e6, period:88, radius:2439.7, color:0x909090 },
+      { name:'Venus', a:108.2e6, period:225, radius:6051.8, color:0xffd8a8 },
+      { name:'Earth', a:149.6e6, period:365.25, radius:6371, color:0x2f8fff },
+      { name:'Mars', a:227.9e6, period:687, radius:3389.5, color:0xff6a33 }
+    ];
+
+    const bodies = [];
+    planetData.forEach(p=>{
+      const isSun = p.name==='Sun';
+      const geo = new THREE.SphereGeometry(Math.max(p.radius*SIZE_SCALE, isSun?50:2.5), 32, 32);
+      const mat = new THREE.MeshStandardMaterial({color:p.color, roughness:1});
+      const mesh = new THREE.Mesh(geo, mat);
+      scene.add(mesh);
+      if (isSun) mesh.material.emissive = new THREE.Color(p.color);
+      bodies.push({data:p,mesh});
+    });
+
+    function animate(){
+      requestAnimationFrame(animate);
+      const now = Date.now()/1000;
+      bodies.forEach((b,i)=>{
+        if(b.data.name==='Sun'){b.mesh.position.set(0,0,0);return;}
+        const angle = (now/b.data.period)*Math.PI*2;
+        const dist = b.data.a*DIST_SCALE;
+        b.mesh.position.set(Math.cos(angle)*dist,0,Math.sin(angle)*dist);
+      });
+      controls.update();
+      renderer.render(scene,camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize',()=>{
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
